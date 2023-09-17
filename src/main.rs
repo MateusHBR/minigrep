@@ -1,18 +1,28 @@
-use std::{env, fs};
+use std::{env, process};
+
+use minigrep::ConfigBuilder;
 
 fn main() {
     let args = env::args().collect::<Vec<String>>();
-    let (Some(query), Some(file_path)) = (args.get(1), args.get(2)) else {
-        eprintln!("Expected args <query> <file-path>");
-        std::process::exit(1);
+
+    let config = ConfigBuilder::new().with_args(&args).build();
+    let config = match config {
+        Ok(config) => config,
+        Err(err) => {
+            eprintln!("problems parsing arguments: \"{}\"", &err);
+            process::exit(1);
+        }
     };
+    println!(
+        "\nSearching for \"{}\" on \"{}\" ...\n",
+        &config.query, &config.file_path
+    );
 
-    let Ok(content) = fs::read_to_string(file_path) else {
-        eprintln!("Could not read file \"{}\"", file_path);
-        std::process::exit(1);
+    match minigrep::run(&config) {
+        Ok(content) => content,
+        Err(err) => {
+            eprintln!("File error: \"{}\"", &err);
+            process::exit(1);
+        }
     };
-
-    println!("Searching for \"{}\" on \"{}\" ...", query, file_path);
-
-    println!("Content: \n{}", content);
 }
